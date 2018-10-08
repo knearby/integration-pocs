@@ -7,7 +7,6 @@ const REQ_TEXT = process.env.REQ_TEXT || 'cafe';
 
 // API administration stuff
 const API_KEY = getEnvValue('GOOGLE_API_KEY');
-// https://
 const REQ_HOST = 'maps.googleapis.com';
 const REQ_METHOD = 'GET';
 const REQ_PATH = '/maps/api/place/findplacefromtext/json' +
