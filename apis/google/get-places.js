@@ -25,5 +25,5 @@ getData({
   useCache: true,
   uriPath: REQ_PATH
 }).then(data => {
-  console.info(data);
+  console.info(data.results);
 });
