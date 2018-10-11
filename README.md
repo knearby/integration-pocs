@@ -4,6 +4,28 @@
 
 ## APIs
 
+### Eventbrite
+Get your API key and place it in a `.env` file at the root of this repository such that the line looks like:
+
+```
+EVENTBRITE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+#### APIs
+
+- Get events
+
+### Google
+Get your API key, enable Google Places API, and place it in a `.env` file at the root of this repository such that the line looks like:
+
+```
+GOOGLE_PLACES_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+#### APIs
+
+- Get places
+
 ### Meetup
 Get your API key and place it in a `.env` file at the root of this repository such that the line looks like:
 
@@ -12,11 +34,8 @@ MEETUP_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### Get Events
-Run the following from the root of this repository to test this functionality:
 
-```bash
-node ./apis/meetup/get-events.js;
-```
+- Get events
 
 **Notes**
 - To modify the search parameters, open the file and change the query options
