@@ -4,56 +4,153 @@ const https = require('https');
 const path = require('path');
 
 module.exports = {
-  getEnvValue: (keyString) =>
-    fs
-      .readFileSync(path.join(__dirname, '../.env'))
-      .toString()
-      .split('\n')
-      .filter((v) => v.indexOf(keyString) === 0)
-      [0].split('=')[1],
-  getData: ({
-    platform = '',
-    id = 'unknown',
-    hostname,
-    method = 'GET',
-    useCache = false,
-    uriPath = '/',
-  }) => {
-    const uriPathHash =
-      crypto.createHash('md5').update(method + hostname + uriPath).digest('hex');
-    const pathToData =
-      path.join(__dirname, `./${platform}/${id}-${uriPathHash}.json`);
-    return new Promise((resolve, reject) => {
-      if (useCache && fs.existsSync(pathToData)) {
-        resolve(JSON.parse(fs.readFileSync(pathToData).toString()));
-      } else {
-        let responseBody = '';
-        const request = https.request(
-          {
-            hostname,
-            port: 443,
-            path: uriPath,
-            method,
-          },
-          (res) => {
-            res.on('data', (data) => {
-              responseBody += data.toString();
-            });
-            res.on('end', () => {
-              const data = JSON.parse(responseBody);
-              fs.writeFileSync(
-                pathToData,
-                JSON.stringify(data, null, 2)
-              );
-              resolve(data);
-            });
-          },
-        );
-        request.on('error', (error) => {
-          reject(error);
-        });
-        request.end();
-      }
-    });
-  }
+  getData,
+  getEnvValue,
+  saveCache,
 };
+
+function createCacheHash({
+  method,
+  hostname,
+  uriPath,
+}) {
+  const unhashedData = method + hostname + uriPath;
+  return crypto.createHash('md5').update(unhashedData).digest('hex');
+}
+
+function createCachePath({
+  id,
+  platform,
+  cacheHash,
+}) {
+  return path.join(__dirname, `./${platform}`, `/${id}-${cacheHash}.json`);
+}
+
+function getData({
+  hostname,
+  id = 'unknown',
+  method = 'GET',
+  platform = '',
+  uriPath = '/',
+  useCache = false,
+}) {
+  
+  return new Promise((resolve, reject) => {
+    const cacheOptions = {
+      hostname, id, method, platform, uriPath,
+    };
+    const cachedData = getCache(cacheOptions);
+
+    if (useCache && cachedData !== null ) {
+      resolve(cachedData);
+    } else {
+      getResponse({
+        hostname,
+        uriPath,
+        method,
+      }, (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          setCache(cacheOptions, data);
+          resolve(data);
+        }
+      });
+    }
+  });
+};
+
+function getResponse({
+  hostname,
+  method,
+  uriPath,
+}, callback) {
+  const requestOptions = {
+    hostname,
+    port: 443,
+    path: uriPath,
+    method,
+  };
+
+  let responseBody = '';
+
+  const request = https.request(
+    requestOptions,
+    (res) => {
+      res.on('data', (data) => responseBody += data.toString());
+      res.on('end', () => {
+        let parsedData;
+        try {
+          parsedData = JSON.parse(responseBody);
+        } catch (ex) {
+          callback(ex);
+        }
+        callback(null, parsedData)
+      });
+    },
+  );
+  request.on('error', (error) => callback(error));
+  request.end();
+}
+
+function getEnvValue(keyString) {
+  return fs
+    .readFileSync(path.join(__dirname, '../.env'))
+    .toString()
+    .split('\n')
+    .filter((v) => v.indexOf(keyString) === 0)
+    [0].split('=')[1];
+};
+
+/**
+ * 
+ * @param {Object} options
+ * @param {String} options.hostname
+ * @param {String} options.id
+ * @param {String} options.method
+ * @param {String} options.platform
+ * @param {String} options.uriPath
+ */
+function getCache({
+  hostname,
+  id,
+  method,
+  platform,
+  uriPath,
+}) {
+  const cacheHash = createCacheHash({method, hostname, uriPath});
+  const pathToData = createCachePath({id, platform, cacheHash});
+
+  return (fs.existsSync(pathToData))
+    ? JSON.parse(fs.readFileSync(pathToData).toString())
+    : null;
+}
+
+/**
+ * 
+ * @param {Object} options
+ * @param {String} options.hostname
+ * @param {String} options.id
+ * @param {String} options.method
+ * @param {String} options.platform
+ * @param {String} options.uriPath
+ * @param {Any} data
+ */
+function setCache(
+  {
+    hostname,
+    id,
+    method,
+    platform,
+    uriPath,
+  },
+  data
+) {
+  const cacheHash = createCacheHash({method, hostname, uriPath});
+  const pathToData = createCachePath({id, platform, cacheHash});
+
+  fs.writeFileSync(
+    pathToData,
+    JSON.stringify(data, null, 2)
+  );
+}
