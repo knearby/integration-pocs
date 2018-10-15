@@ -6,7 +6,7 @@ const path = require('path');
 module.exports = {
   getData,
   getEnvValue,
-  saveCache,
+  setCache,
 };
 
 function createCacheHash({
@@ -39,6 +39,7 @@ function getData({
     const cacheOptions = {
       hostname, id, method, platform, uriPath,
     };
+    console.info(cacheOptions);
     const cachedData = getCache(cacheOptions);
 
     if (useCache && cachedData !== null ) {
@@ -121,9 +122,16 @@ function getCache({
   const cacheHash = createCacheHash({method, hostname, uriPath});
   const pathToData = createCachePath({id, platform, cacheHash});
 
-  return (fs.existsSync(pathToData))
-    ? JSON.parse(fs.readFileSync(pathToData).toString())
-    : null;
+  try {
+    return (fs.existsSync(pathToData))
+      ? JSON.parse(fs.readFileSync(pathToData).toString())
+      : null;
+  } catch (ex) {
+    console.info('pathToDataExists', fs.existsSync(pathToData));
+    console.info('pathToData', pathToData);
+    console.error(ex);
+    throw ex;
+  }
 }
 
 /**
